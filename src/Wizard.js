@@ -47,43 +47,36 @@ class Wizard extends React.Component {
 
   getInitialComponents() {
     const { children, ...props } = this.props;
-    let stepsComponent = null;
-    let buttonsListComponent = null;
-    let validators = [];
 
-    Children.forEach(children, child => {
-      if (child.type.displayName === 'StepsList') {
-        stepsComponent = cloneElement(child, {
-          activeStepIndex: this.state.activeStepIndex,
-          updateStepTabs: this.updateStepTabs,
-          ...props,
-        });
-        if (child.props.validators) {
-          // eslint-disable-next-line prefer-destructuring
-          validators = child.props.validators;
-        }
-      }
-      if (child.type.displayName === 'ButtonsList') {
-        buttonsListComponent = cloneElement(child, {
-          activeStepIndex: this.state.activeStepIndex,
-          totalSteps: this.state.totalSteps,
-          onSubmit: this.onSubmit,
-          onNextStep: this.onNextStep,
-          onPreviousStep: this.onPreviousStep,
-          validators,
-          ...props,
-        });
+    const stepsChild= Children.toArray(children).find(child => child.type.displayName === 'StepsList');
+    const stepsComponent = cloneElement(stepsChild, {
+      activeStepIndex: this.state.activeStepIndex,
+      updateStepTabs: this.updateStepTabs,
+      ...props,
+    });
+    const validators = stepsChild.props.validators;
+    const childrenProps = {
+      activeStepIndex: this.state.activeStepIndex,
+      totalSteps: this.state.totalSteps,
+      onSubmit: this.onSubmit,
+      onNextStep: this.onNextStep,
+      onPreviousStep: this.onPreviousStep,
+      validators,
+      ...props,
+    };
+
+    const otherComponents = Children.map(children, child => {
+      if (child.type.displayName !== 'StepsList') {
+        return cloneElement(child, childrenProps);
       }
     });
-    return { stepsComponent, buttonsListComponent };
+
+    return [stepsComponent, ...otherComponents];
   }
 
   render() {
     const { className } = this.props;
-    const {
-      stepsComponent,
-      buttonsListComponent,
-    } = this.getInitialComponents();
+    const components = this.getInitialComponents();
     return (
       <div
         className={cx('react-formik-wizard', {
@@ -94,8 +87,7 @@ class Wizard extends React.Component {
           tabs={this.state.stepTabs}
           activeStepIndex={this.state.activeStepIndex}
         />
-        {stepsComponent}
-        {buttonsListComponent}
+        {components}
       </div>
     );
   }
